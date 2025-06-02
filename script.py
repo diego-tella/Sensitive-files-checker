@@ -65,7 +65,6 @@ class BurpExtender(IBurpExtender, IHttpListener):
 
             resp_info = self.helpers.analyzeResponse(response.getResponse())
             status_code = resp_info.getStatusCode()
-            body = response.getResponse()[resp_info.getBodyOffset():].tostring()
 
             if status_code == 200:
                 print("[!!!] .env file exposed at: " + test_url)
