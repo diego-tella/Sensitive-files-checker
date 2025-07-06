@@ -1,4 +1,4 @@
-from burp import IBurpExtender, IHttpListener
+from burp import IBurpExtender, IHttpListener, IScanIssue
 from java.net import URL
 import threading
 
@@ -45,7 +45,17 @@ class BurpExtender(IBurpExtender, IHttpListener):
             body = response.getResponse()[resp_info.getBodyOffset():].tostring()
 
             if status_code == 200 and "ref:" in body:
+                issue = CustomScanIssue(
+                    httpService=service,
+                    url=url_obj,
+                    requestResponse=response,
+                    name=".git exposed found!",
+                    detail="A .git directory is exposed at " + test_url,
+                    severity="Medium"
+                )
+                self.callbacks.addScanIssue(issue)
                 print("[!!!] .git directory exposed at: " + test_url)
+                   
         except Exception as e:
             print("[-] Error checking {}: {}".format(base_url, str(e)))
 
@@ -67,6 +77,59 @@ class BurpExtender(IBurpExtender, IHttpListener):
             status_code = resp_info.getStatusCode()
 
             if status_code == 200:
+                issue = CustomScanIssue(
+                    httpService=service,
+                    url=url_obj,
+                    requestResponse=response,
+                    name=".env exposed found!",
+                    detail="A .env file is exposed at " + test_url,
+                    severity="Medium"
+                )
+                self.callbacks.addScanIssue(issue)
                 print("[!!!] .env file exposed at: " + test_url)
         except Exception as e:
             print("[-] Error checking {}: {}".format(base_url, str(e)))
+
+
+class CustomScanIssue(IScanIssue):
+
+    def __init__(self, httpService, url, requestResponse, name, detail, severity):
+        self._httpService = httpService
+        self._url = url
+        self._requestResponse = requestResponse
+        self._name = name
+        self._detail = detail
+        self._severity = severity
+
+    def getUrl(self):
+        return self._url
+
+    def getIssueName(self):
+        return self._name
+
+    def getIssueType(self):
+        return 0  
+
+    def getSeverity(self):
+        return self._severity
+
+    def getConfidence(self):
+        return "Certain"
+
+    def getIssueBackground(self):
+        return None
+
+    def getRemediationBackground(self):
+        return None
+
+    def getIssueDetail(self):
+        return self._detail
+
+    def getRemediationDetail(self):
+        return None
+
+    def getHttpMessages(self):
+        return [self._requestResponse]
+
+    def getHttpService(self):
+        return self._httpService
